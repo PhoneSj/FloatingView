@@ -1,30 +1,26 @@
 package com.phone.custom;
 
+import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.widget.Toast;
+import android.widget.Button;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        FloatingView floatingView= (FloatingView) findViewById(R.id.floatingView);
-        floatingView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Toast.makeText(MainActivity.this,"点击事件",Toast.LENGTH_SHORT).show();
-            }
-        });
-        floatingView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View view) {
-                Toast.makeText(MainActivity.this,"长按事件",Toast.LENGTH_SHORT).show();
-                return true;
-            }
-        });
-    }
+	@Override
+	protected void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_main);
+		Button startFloatWindow = (Button) findViewById(R.id.start_float_window);
+		startFloatWindow.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View arg0) {
+				Intent intent = new Intent(MainActivity.this, FloatViewService.class);
+				startService(intent);
+				finish();
+			}
+		});
+	}
 
 }

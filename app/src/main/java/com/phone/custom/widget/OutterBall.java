@@ -1,4 +1,4 @@
-package com.phone.custom;
+package com.phone.custom.widget;
 
 /**
  * Created by Phone on 2017/5/22.

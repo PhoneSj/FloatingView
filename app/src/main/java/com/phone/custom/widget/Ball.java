@@ -1,4 +1,4 @@
-package com.phone.custom;
+package com.phone.custom.widget;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
