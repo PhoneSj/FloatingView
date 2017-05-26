@@ -5,6 +5,7 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.ViewConfiguration;
 import android.view.WindowManager;
 import android.widget.FrameLayout;
 
@@ -73,6 +74,15 @@ public class WrapFloatView extends FrameLayout {
 	 */
 	private float yInView;
 
+	private int mScaleTouchSlop;
+	private long mLastDownTime;
+	private final static long LONG_CLICK_LIMIT = 500;
+
+	private float mMotionDownX;
+	private float mMotionDownY;
+
+	private float mMaxMoveDistance;
+
 	public WrapFloatView(Context context) {
 		this(context, null);
 	}
@@ -83,11 +93,38 @@ public class WrapFloatView extends FrameLayout {
 
 	public WrapFloatView(Context context, AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
+		mScaleTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 		windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
 		LayoutInflater.from(context).inflate(R.layout.layout_float, this);
 		View view = findViewById(R.id.frameLayout);
 		viewWidth = view.getLayoutParams().width;
 		viewHeight = view.getLayoutParams().height;
+	}
+
+	@Override
+	public boolean onInterceptTouchEvent(MotionEvent event) {
+		switch (event.getActionMasked()) {
+			case MotionEvent.ACTION_DOWN:
+				mLastDownTime = System.currentTimeMillis();
+				mMotionDownX = event.getX();
+				mMotionDownY = event.getY();
+				break;
+			case MotionEvent.ACTION_MOVE:
+				getMaxMoveDistance(event);
+				if (isLongTouch()) {
+					doLongPressEffect();
+					return true;
+				}
+				break;
+			case MotionEvent.ACTION_UP:
+			case MotionEvent.ACTION_CANCEL:
+				if (isClick(event)) {
+					doClickEffect();
+				}
+				resetMaxMoveDistance();
+				break;
+		}
+		return super.onInterceptTouchEvent(event);
 	}
 
 	@Override
@@ -103,16 +140,15 @@ public class WrapFloatView extends FrameLayout {
 				yInScreen = event.getRawY() - getStatusBarHeight();
 				break;
 			case MotionEvent.ACTION_MOVE:
+				getMaxMoveDistance(event);
 				xInScreen = event.getRawX();
 				yInScreen = event.getRawY() - getStatusBarHeight();
 				// 手指移动的时候更新小悬浮窗的位置
 				updateViewPosition();
 				break;
 			case MotionEvent.ACTION_UP:
-				// 如果手指离开屏幕时，xDownInScreen和xInScreen相等，且yDownInScreen和yInScreen相等，则视为触发了单击事件。
-				if (xDownInScreen == xInScreen && yDownInScreen == yInScreen) {
-					//					openBigWindow();
-				}
+			case MotionEvent.ACTION_CANCEL:
+				resetMaxMoveDistance();
 				break;
 			default:
 				break;
@@ -157,4 +193,65 @@ public class WrapFloatView extends FrameLayout {
 		}
 		return statusBarHeight;
 	}
+
+	/**
+	 * 是否是长按
+	 * 
+	 * @return
+	 */
+	private boolean isLongTouch() {
+		long time = System.currentTimeMillis();
+		//需要满足两个条件：1.所有move事件与down事件之间的偏移量小于阈值，2.该move事件与down之间之间的时间差大于阈值
+		if (mMaxMoveDistance < mScaleTouchSlop && (time - mLastDownTime >= LONG_CLICK_LIMIT)) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 是否是点击
+	 * 
+	 * @param event
+	 * @return
+	 */
+	private boolean isClick(MotionEvent event) {
+		//满足一个条件：1.所有move事件与down事件之间的偏移量小于阈值
+		if (mMaxMoveDistance < mScaleTouchSlop) {
+			return true;
+		}
+		return false;
+	}
+
+	/**
+	 * 所有move事件与down事件的坐标偏移量最大值
+	 * 
+	 * @param event
+	 */
+	private void getMaxMoveDistance(MotionEvent event) {
+		float dx = Math.abs(event.getX() - mMotionDownX);
+		float dy = Math.abs(event.getY() - mMotionDownY);
+		float maxValue = Math.max(dx, dy);
+		mMaxMoveDistance = Math.max(mMaxMoveDistance, maxValue);
+	}
+
+	private void resetMaxMoveDistance() {
+		mMaxMoveDistance = 0;
+	}
+
+	/**
+	 * 执行点击效果
+	 */
+	private void doClickEffect() {
+		final FloatView child = (FloatView) findViewById(R.id.floatView);
+		child.startClickAnimator();
+	}
+
+	/**
+	 * 执行长按效果
+	 */
+	private void doLongPressEffect() {
+		final FloatView child = (FloatView) findViewById(R.id.floatView);
+		//		child.startLongPressAnim();
+	}
+
 }

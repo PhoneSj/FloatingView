@@ -1,6 +1,7 @@
 package com.phone.custom.widget;
 
 import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.graphics.Canvas;
@@ -19,25 +20,21 @@ import android.view.animation.OvershootInterpolator;
 
 public class FloatView extends View {
 
-	private static final int[] OUT_CIRCLE_COLOR_RANGE = { 0x00ffffff, 0x00ffffff, 0x1affffff, 0x62ffffff, 0x7effffff };
+	private static final int[] OUT_CIRCLE_COLOR_RANGE = { 0x00ffffff, 0x00ffffff, 0x1affffff,
+			0x62ffffff, 0x7effffff };
 	private static final float[] OUT_CIRCLE_POSITION_RANGE = { 0.0f, 0.45f, 0.6f, 0.9f, 1.0f };
-	private static final int[] INNER_CIRCLE_COLOR_RANGE = { 0xb2ffffff, 0xb2ffffff, 0xe5ffffff, 0xe5ffffff };
+	private static final int[] INNER_CIRCLE_COLOR_RANGE = { 0xb2ffffff, 0xb2ffffff, 0xe5ffffff,
+			0xe5ffffff };
 	private static final float[] INNER_CIRCLE_POSITION_RANGE = { 0.0f, 0.05f, 0.75f, 1.0f };
-	private static final int[] INNER_CIRCLE_STROKE_COLOR_RANGE = { 0x00ffffff, 0x00ffffff, 0xffffffff, 0xffffffff };
-	private static final float[] INNER_CIRCLE_STROKE_POSITION_RANGE = { 0.0f, 0.94f, 0.98f, 1.0f };
 
 	private float mUpThreshold = 0.99f;
 	private float mDownThreshold = 0.0f;
 
 	private float mInnerRadiusRate = 0.4f;
-	private float mOutterRadiusRate = 0.5f;
+	private float mOutterRadiusRate = 0.55f;
 
 	private int mScaleTouchSlop;
 	private boolean isBeingDrag;
-
-	private boolean mIsLongTouch;
-
-	private boolean mIsTouching;
 
 	private OutterBall mOutterBall;
 	private InnerBall mInnerBall;
@@ -48,15 +45,13 @@ public class FloatView extends View {
 	private ValueAnimator mClickAnimator;
 	private int mDistance;
 
-	private boolean isClick;
-
 	private int mDownMotionX;
 	private int mDownMotionY;
 
-	private TriggerDirection mDirection;
+	private Mode mode = Mode.NONE;
 
-	private enum TriggerDirection {
-		LEFT, TOP, RIGHT, BOTTOM, NONE, MOVE, GONE
+	private enum Mode {
+		LEFT, TOP, RIGHT, BOTTOM, NONE
 	}
 
 	public FloatView(Context context) {
@@ -78,30 +73,27 @@ public class FloatView extends View {
 		center.x = (getMeasuredWidth() + getPaddingLeft() - getPaddingRight()) / 2;
 		center.y = (getMeasuredHeight() + getPaddingTop() - getPaddingBottom()) / 2;
 		final int radius = Math.min(getMeasuredWidth(), getMeasuredHeight()) / 2;
-		mOutterBall = new OutterBall(center.x, center.y, radius, mOutterRadiusRate);
-		mOutterBall.setColorsAndPosition(OUT_CIRCLE_COLOR_RANGE, OUT_CIRCLE_POSITION_RANGE);
 		mInnerBall = new InnerBall(center.x, center.y, radius, mInnerRadiusRate);
 		mInnerBall.setColorsAndPosition(INNER_CIRCLE_COLOR_RANGE, INNER_CIRCLE_POSITION_RANGE);
+		mOutterBall = new OutterBall(center.x, center.y, radius, mOutterRadiusRate);
+		mOutterBall.setColorsAndPosition(OUT_CIRCLE_COLOR_RANGE, OUT_CIRCLE_POSITION_RANGE);
 		invalidate();
 	}
 
 	@Override
 	protected void onDraw(Canvas canvas) {
-		Log.i("phoneTest", "onDraw...");
 		super.onDraw(canvas);
-		if (mOutterBall != null) {
-			mOutterBall.draw(canvas);
-		}
 		if (mInnerBall != null) {
 			mInnerBall.draw(canvas);
+		}
+		if (mOutterBall != null) {
+			mOutterBall.draw(canvas);
 		}
 	}
 
 	@Override
 	public boolean onTouchEvent(MotionEvent event) {
 
-		//        boolean flag = gestureDetector.onTouchEvent(event);
-		//        return flag;
 		if (isRunningOfAnimators()) {
 			return false;
 		}
@@ -138,15 +130,11 @@ public class FloatView extends View {
 
 				break;
 			case MotionEvent.ACTION_UP:
-				isBeingDrag = false;
-				if (!isClick) {
-					startDragAnim();
-					float dx = event.getX() - center.x;
-					float dy = event.getY() - center.y;
-					mDirection = judgeWhichDirection(dx, dy);
-				}
-				break;
 			case MotionEvent.ACTION_CANCEL:
+				isBeingDrag = false;
+				float dx = event.getX() - center.x;
+				float dy = event.getY() - center.y;
+				startDragAnim(judgeWhichDirection(dx, dy));
 				break;
 		}
 		return isConsume || event.getAction() == MotionEvent.ACTION_DOWN;
@@ -154,26 +142,22 @@ public class FloatView extends View {
 
 	/**
 	 * 判定触发哪个方向的操作
-	 *
-	 * @param dx
-	 * @param dy
-	 * @return
 	 */
-	private TriggerDirection judgeWhichDirection(float dx, float dy) {
-		TriggerDirection temp = TriggerDirection.NONE;
+	private Mode judgeWhichDirection(float dx, float dy) {
+		Mode temp = Mode.NONE;
 		double distance = Math.sqrt(dx * dx + dy * dy);
 		int radius = Math.min(getMeasuredWidth(), getMeasuredHeight()) / 2;
 		if (distance < radius * mUpThreshold || distance > radius * mDownThreshold) {
 			if (Math.abs(dx) > Math.abs(dy)) {
 				if (dx > 0) {
-					temp = TriggerDirection.RIGHT;
+					temp = Mode.RIGHT;
 				} else {
-					temp = TriggerDirection.LEFT;
+					temp = Mode.LEFT;
 				}
 			} else if (dy > 0) {
-				temp = TriggerDirection.BOTTOM;
+				temp = Mode.BOTTOM;
 			} else {
-				temp = TriggerDirection.TOP;
+				temp = Mode.TOP;
 			}
 		}
 		return temp;
@@ -190,29 +174,13 @@ public class FloatView extends View {
 		return angle;
 	}
 
-	@Override
-	public void setOnClickListener(OnClickListener l) {
-		//        super.setOnClickListener(l);
-		Log.w("phoneTest", "not allow to set OnClickListener");
-	}
-
-	@Override
-	public void setOnLongClickListener(OnLongClickListener l) {
-		//        super.setOnLongClickListener(l);
-		Log.w("phoneTest", "not allow to set OnLongClickListener");
-	}
-
-	private void startDragAnim() {
+	private void startDragAnim(final Mode newMode) {
+		Log.i("phoneTest", "startDragAnim..." + newMode);
 		//有动画正在执行，不响应
 		if (isRunningOfAnimators()) {
 			return;
 		}
-		if (mDragAnimator == null) {
-			mDragAnimator = ValueAnimator.ofInt(mDistance, 0);
-		}
-		if (mDragAnimator.isRunning()) {
-			return;
-		}
+		mDragAnimator = ValueAnimator.ofInt(mDistance, 0);
 		mDragAnimator.setIntValues(mDistance, 0);
 		mDragAnimator.setDuration(400);
 		mDragAnimator.setInterpolator(new OvershootInterpolator());
@@ -229,26 +197,53 @@ public class FloatView extends View {
 				invalidate();
 			}
 		});
+		mDragAnimator.addListener(new AnimatorListenerAdapter() {
+			@Override
+			public void onAnimationEnd(Animator animation) {
+				super.onAnimationEnd(animation);
+				//TODO
+				doFunction(newMode);
+			}
+		});
 		mDragAnimator.start();
 	}
 
-	private void startClickAnimator() {
+	private void doFunction(Mode newMode) {
+		Log.i("phoneTest", "doFunction..." + newMode);
+		if (newMode == mode) {
+			return;
+		}
+		switch (newMode) {
+			case LEFT:
+				Log.i("phoneTest", "响应LEFT操作");
+				break;
+			case TOP:
+				Log.i("phoneTest", "响应TOP操作");
+				break;
+			case RIGHT:
+				Log.i("phoneTest", "响应RIGHT操作");
+				break;
+			case BOTTOM:
+				Log.i("phoneTest", "响应BOTTOM操作");
+				break;
+			case NONE:
+				Log.i("phoneTest", "响应NONE操作");
+				break;
+		}
+		mode = newMode;
+	}
+
+	public void startClickAnimator() {
 		//有动画正在执行，不响应
 		if (isRunningOfAnimators()) {
-			Log.i("phoneTest", "==============0===============");
 			return;
 		}
 		int radius = Math.min(getMeasuredWidth(), getMeasuredHeight()) / 2;
-		if (mClickAnimator == null) {
-			Log.i("phoneTest", "==============1===============");
-			mClickAnimator = ValueAnimator.ofFloat(radius * mInnerRadiusRate, radius * mInnerRadiusRate * 1.2f,
-					radius * mInnerRadiusRate);
-		}
+		mClickAnimator = ValueAnimator.ofFloat(radius * mInnerRadiusRate, radius * mInnerRadiusRate * 1.2f,
+				radius * mInnerRadiusRate);
 		if (mClickAnimator.isRunning()) {
-			Log.i("phoneTest", "==============2===============");
 			return;
 		}
-		Log.i("phoneTest", "==============3===============");
 		mClickAnimator.setDuration(500);
 		mClickAnimator.setInterpolator(new AccelerateDecelerateInterpolator());
 		mClickAnimator.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
@@ -261,91 +256,26 @@ public class FloatView extends View {
 				invalidate();
 			}
 		});
-		mClickAnimator.addListener(new Animator.AnimatorListener() {
+		mClickAnimator.addListener(new AnimatorListenerAdapter() {
 			@Override
-			public void onAnimationStart(Animator animator) {
-				isClick = true;
-			}
-
-			@Override
-			public void onAnimationEnd(Animator animator) {
-				isClick = false;
-			}
-
-			@Override
-			public void onAnimationCancel(Animator animator) {
-
-			}
-
-			@Override
-			public void onAnimationRepeat(Animator animator) {
-
+			public void onAnimationEnd(Animator animation) {
+				super.onAnimationEnd(animation);
+				//TODO
 			}
 		});
 		mClickAnimator.start();
-		startClickAnimator();
 	}
 
 	private boolean isRunningOfAnimators() {
 		if (mDragAnimator != null && mDragAnimator.isRunning()) {
-			Log.i("phoneTest", "drag animator is running");
+			//			Log.i("phoneTest", "drag animator is running");
 			return true;
 		}
 		if (mClickAnimator != null && mClickAnimator.isRunning()) {
-			Log.i("phoneTest", "click animator is running");
+			//			Log.i("phoneTest", "click animator is running");
 			return true;
 		}
 		return false;
 	}
 
-//	private boolean isLongTouch() {
-//		long time = System.currentTimeMillis();
-//		//当前是滑动状态 && 当前模式为none &&  时间差要大于长按的极限值
-//		if (mIsTouching && mCurrentMode == MODE_NONE && (time - mLastDownTime >= LONG_CLICK_LIMIT)) {
-//			return true;
-//		}
-//		return false;
-//	}
-
-
-	//    private GestureDetector gestureDetector = new GestureDetector(new GestureDetector
-	//            .SimpleOnGestureListener() {
-	//        @Override
-	//        public boolean onDown(MotionEvent event) {
-	//            mDownMotionX = (int) event.getRawX();
-	//            mDownMotionY = (int) event.getRawY();
-	//            return true;
-	//        }
-	//
-	//        @Override
-	//        public boolean onSingleTapUp(MotionEvent event) {
-	//            Log.i("phoenTest", "onSingleTapUp");
-	//
-	//            return super.onSingleTapUp(event);
-	//        }
-	//
-	//        @Override
-	//        public void onLongPress(MotionEvent event) {
-	//            super.onLongPress(event);
-	//            Log.i("phoenTest", "onSingleTapConfirmed");
-	//        }
-	//
-	//        @Override
-	//        public boolean onScroll(MotionEvent e1, MotionEvent e2, float distanceX, float distanceY) {
-	//            Log.i("phoenTest", "onScroll");
-	//            mDistanceX += distanceX;
-	//            mDistanceY += distanceY;
-	//            mDirection = judgeWhichDirection(mDistanceX, mDistanceY);
-	//            return super.onScroll(e1, e2, distanceX, distanceY);
-	//        }
-	//
-	//        @Override
-	//        public boolean onSingleTapConfirmed(MotionEvent event) {
-	//            Log.i("phoenTest", "onSingleTapConfirmed");
-	//            return super.onSingleTapConfirmed(event);
-	//        }
-	//    });
-	//
-	//    private float mDistanceX;
-	//    private float mDistanceY;
 }
