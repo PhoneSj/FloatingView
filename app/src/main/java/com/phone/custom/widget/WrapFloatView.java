@@ -1,7 +1,9 @@
 package com.phone.custom.widget;
 
 import android.content.Context;
+import android.os.Vibrator;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -20,12 +22,12 @@ import java.lang.reflect.Field;
 public class WrapFloatView extends FrameLayout {
 
 	/**
-	 * 记录小悬浮窗的宽度
+	 * 记录悬浮View的宽度
 	 */
 	public static int viewWidth;
 
 	/**
-	 * 记录小悬浮窗的高度
+	 * 记录悬浮View的高度
 	 */
 	public static int viewHeight;
 
@@ -35,12 +37,12 @@ public class WrapFloatView extends FrameLayout {
 	private static int statusBarHeight;
 
 	/**
-	 * 用于更新小悬浮窗的位置
+	 * 用于更新悬浮View的位置
 	 */
 	private WindowManager windowManager;
 
 	/**
-	 * 小悬浮窗的参数
+	 * 悬浮View的布局参数
 	 */
 	private WindowManager.LayoutParams mParams;
 
@@ -55,33 +57,40 @@ public class WrapFloatView extends FrameLayout {
 	private float yInScreen;
 
 	/**
-	 * 记录手指按下时在屏幕上的横坐标的值
-	 */
-	private float xDownInScreen;
-
-	/**
-	 * 记录手指按下时在屏幕上的纵坐标的值
-	 */
-	private float yDownInScreen;
-
-	/**
-	 * 记录手指按下时在小悬浮窗的View上的横坐标的值
+	 * 记录手指按下时在悬浮View的上的横坐标的值
 	 */
 	private float xInView;
 
 	/**
-	 * 记录手指按下时在小悬浮窗的View上的纵坐标的值
+	 * 记录手指按下时在悬浮View的上的纵坐标的值
 	 */
 	private float yInView;
 
+	/**
+	 * 判定轻微滑动的阈值
+	 */
 	private int mScaleTouchSlop;
+	/**
+	 * 上一次Down事件触发的时间点
+	 */
 	private long mLastDownTime;
-	private final static long LONG_CLICK_LIMIT = 500;
+	/**
+	 * 判定为长按的时间阈值
+	 */
+	private final static long LONG_CLICK_LIMIT = 300;
 
 	private float mMotionDownX;
 	private float mMotionDownY;
-
+	/**
+	 * 从一次down到up/cancel之间所有move事件中，触发点与down事件的触发点的最大偏移量（取横、纵坐标的较大值）
+	 */
 	private float mMaxMoveDistance;
+
+	/**
+	 * 震动服务
+	 */
+	private Vibrator mVibrator;
+	private long[] mPattern = { 0, 100 };
 
 	public WrapFloatView(Context context) {
 		this(context, null);
@@ -93,6 +102,7 @@ public class WrapFloatView extends FrameLayout {
 
 	public WrapFloatView(Context context, AttributeSet attrs, int defStyleAttr) {
 		super(context, attrs, defStyleAttr);
+		mVibrator = (Vibrator) getContext().getSystemService(Context.VIBRATOR_SERVICE);
 		mScaleTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 		windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
 		LayoutInflater.from(context).inflate(R.layout.layout_float, this);
@@ -105,13 +115,20 @@ public class WrapFloatView extends FrameLayout {
 	public boolean onInterceptTouchEvent(MotionEvent event) {
 		switch (event.getActionMasked()) {
 			case MotionEvent.ACTION_DOWN:
+				//记录down事件触发的时间点
 				mLastDownTime = System.currentTimeMillis();
 				mMotionDownX = event.getX();
 				mMotionDownY = event.getY();
+				// 手指按下时记录必要数据,纵坐标的值都需要减去状态栏高度
+				xInView = event.getX();
+				yInView = event.getY();
+				xInScreen = event.getRawX();
+				yInScreen = event.getRawY() - getStatusBarHeight();
 				break;
 			case MotionEvent.ACTION_MOVE:
 				getMaxMoveDistance(event);
 				if (isLongTouch()) {
+					mVibrator.vibrate(mPattern, -1);
 					doLongPressEffect();
 					return true;
 				}
@@ -134,8 +151,6 @@ public class WrapFloatView extends FrameLayout {
 				// 手指按下时记录必要数据,纵坐标的值都需要减去状态栏高度
 				xInView = event.getX();
 				yInView = event.getY();
-				xDownInScreen = event.getRawX();
-				yDownInScreen = event.getRawY() - getStatusBarHeight();
 				xInScreen = event.getRawX();
 				yInScreen = event.getRawY() - getStatusBarHeight();
 				break;
@@ -169,6 +184,7 @@ public class WrapFloatView extends FrameLayout {
 	 * 更新小悬浮窗在屏幕中的位置。
 	 */
 	private void updateViewPosition() {
+		Log.i("phoneTest", "xInView:" + xInView + ",	yInView:" + yInView);
 		mParams.x = (int) (xInScreen - xInView);
 		mParams.y = (int) (yInScreen - yInView);
 		windowManager.updateViewLayout(this, mParams);

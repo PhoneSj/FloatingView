@@ -13,6 +13,7 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.animation.AccelerateDecelerateInterpolator;
 import android.view.animation.OvershootInterpolator;
+import android.widget.Toast;
 
 /**
  * Created by Phone on 2017/5/20.
@@ -20,38 +21,74 @@ import android.view.animation.OvershootInterpolator;
 
 public class FloatView extends View {
 
-	private static final int[] OUT_CIRCLE_COLOR_RANGE = { 0x00ffffff, 0x00ffffff, 0x1affffff,
-			0x62ffffff, 0x7effffff };
+	private static final int[] OUT_CIRCLE_COLOR_RANGE = { 0x00ffffff, 0x00ffffff, 0x1affffff, 0x62ffffff, 0x7effffff };
 	private static final float[] OUT_CIRCLE_POSITION_RANGE = { 0.0f, 0.45f, 0.6f, 0.9f, 1.0f };
-	private static final int[] INNER_CIRCLE_COLOR_RANGE = { 0xb2ffffff, 0xb2ffffff, 0xe5ffffff,
-			0xe5ffffff };
+	private static final int[] INNER_CIRCLE_COLOR_RANGE = { 0xb2ffffff, 0xb2ffffff, 0xe5ffffff, 0xe5ffffff };
 	private static final float[] INNER_CIRCLE_POSITION_RANGE = { 0.0f, 0.05f, 0.75f, 1.0f };
 
+	/**
+	 * 触发操作的上限阈值
+	 */
 	private float mUpThreshold = 0.99f;
+	/**
+	 * 触发操作的下限阈值
+	 */
 	private float mDownThreshold = 0.0f;
-
+	/**
+	 * 大圆半径与FloatView半径的比例值
+	 */
 	private float mInnerRadiusRate = 0.4f;
-	private float mOutterRadiusRate = 0.55f;
-
+	/**
+	 * 小圆半径与FloatView半径的比例值
+	 */
+	private float mOutterRadiusRate = 0.6f;
+	/**
+	 * 轻微滑动阈值
+	 */
 	private int mScaleTouchSlop;
+	/**
+	 * 是否正在拖拽
+	 */
 	private boolean isBeingDrag;
-
+	/**
+	 * 外圆
+	 */
 	private OutterBall mOutterBall;
+	/**
+	 * 内圆
+	 */
 	private InnerBall mInnerBall;
-
+	/**
+	 * 中心点
+	 */
 	private Point center = new Point();
-
+	/**
+	 * 拖拽动画
+	 */
 	private ValueAnimator mDragAnimator;
+	/**
+	 * 点击动画
+	 */
 	private ValueAnimator mClickAnimator;
+	/**
+	 * 当前拖拽的距离
+	 */
 	private int mDistance;
-
+	/**
+	 * down事件的横坐标
+	 */
 	private int mDownMotionX;
+	/**
+	 * down事件的纵坐标
+	 */
 	private int mDownMotionY;
-
+	/**
+	 * 当前手势
+	 */
 	private Mode mode = Mode.NONE;
 
-	private enum Mode {
-		LEFT, TOP, RIGHT, BOTTOM, NONE
+	public enum Mode {
+		CLICK, LEFT, UP, RIGHT, DOWN, NONE
 	}
 
 	public FloatView(Context context) {
@@ -97,6 +134,7 @@ public class FloatView extends View {
 		if (isRunningOfAnimators()) {
 			return false;
 		}
+		//在自定义处理事件前，先调用父类的处理方式
 		boolean isConsume = super.onTouchEvent(event);
 		switch (event.getAction()) {
 			case MotionEvent.ACTION_DOWN:
@@ -155,9 +193,9 @@ public class FloatView extends View {
 					temp = Mode.LEFT;
 				}
 			} else if (dy > 0) {
-				temp = Mode.BOTTOM;
+				temp = Mode.DOWN;
 			} else {
-				temp = Mode.TOP;
+				temp = Mode.UP;
 			}
 		}
 		return temp;
@@ -174,6 +212,11 @@ public class FloatView extends View {
 		return angle;
 	}
 
+	/**
+	 * 开始拖拽动画
+	 * 
+	 * @param newMode
+	 */
 	private void startDragAnim(final Mode newMode) {
 		Log.i("phoneTest", "startDragAnim..." + newMode);
 		//有动画正在执行，不响应
@@ -208,31 +251,9 @@ public class FloatView extends View {
 		mDragAnimator.start();
 	}
 
-	private void doFunction(Mode newMode) {
-		Log.i("phoneTest", "doFunction..." + newMode);
-		if (newMode == mode) {
-			return;
-		}
-		switch (newMode) {
-			case LEFT:
-				Log.i("phoneTest", "响应LEFT操作");
-				break;
-			case TOP:
-				Log.i("phoneTest", "响应TOP操作");
-				break;
-			case RIGHT:
-				Log.i("phoneTest", "响应RIGHT操作");
-				break;
-			case BOTTOM:
-				Log.i("phoneTest", "响应BOTTOM操作");
-				break;
-			case NONE:
-				Log.i("phoneTest", "响应NONE操作");
-				break;
-		}
-		mode = newMode;
-	}
-
+	/**
+	 * 执行点击动画
+	 */
 	public void startClickAnimator() {
 		//有动画正在执行，不响应
 		if (isRunningOfAnimators()) {
@@ -261,11 +282,17 @@ public class FloatView extends View {
 			public void onAnimationEnd(Animator animation) {
 				super.onAnimationEnd(animation);
 				//TODO
+				doFunction(Mode.CLICK);
 			}
 		});
 		mClickAnimator.start();
 	}
 
+	/**
+	 * 是否有动画正在执行
+	 * 
+	 * @return
+	 */
 	private boolean isRunningOfAnimators() {
 		if (mDragAnimator != null && mDragAnimator.isRunning()) {
 			//			Log.i("phoneTest", "drag animator is running");
@@ -276,6 +303,44 @@ public class FloatView extends View {
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * 响应操作
+	 *
+	 * @param newMode
+	 */
+	private void doFunction(Mode newMode) {
+		Log.i("phoneTest", "doFunction..." + newMode);
+		if (newMode == mode) {
+			return;
+		}
+		switch (newMode) {
+			case CLICK:
+				Log.i("phoneTest", "响应CLICK操作");
+				Toast.makeText(getContext(), "响应CLICK操作", Toast.LENGTH_SHORT).show();
+				break;
+			case LEFT:
+				Log.i("phoneTest", "响应LEFT操作");
+				Toast.makeText(getContext(), "响应LEFT操作", Toast.LENGTH_SHORT).show();
+				break;
+			case UP:
+				Log.i("phoneTest", "响应TOP操作");
+				Toast.makeText(getContext(), "响应TOP操作", Toast.LENGTH_SHORT).show();
+				break;
+			case RIGHT:
+				Log.i("phoneTest", "响应RIGHT操作");
+				Toast.makeText(getContext(), "响应RIGHT操作", Toast.LENGTH_SHORT).show();
+				break;
+			case DOWN:
+				Log.i("phoneTest", "响应BOTTOM操作");
+				Toast.makeText(getContext(), "响应BOTTOM操作", Toast.LENGTH_SHORT).show();
+				break;
+			case NONE:
+				Log.i("phoneTest", "响应NONE操作");
+				break;
+		}
+		mode = newMode;
 	}
 
 }

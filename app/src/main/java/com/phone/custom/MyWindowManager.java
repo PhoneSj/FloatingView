@@ -20,7 +20,12 @@ public class MyWindowManager {
 
 	private static WindowManager mWindowManager;
 
-	public static void createSmallWindow(Context context) {
+	/**
+	 * 创建悬浮View
+	 * 
+	 * @param context
+	 */
+	public static void createFloatView(Context context) {
 		WindowManager windowManager = getWindowManager(context);
 		int screenWidth = windowManager.getDefaultDisplay().getWidth();
 		int screenHeight = windowManager.getDefaultDisplay().getHeight();
@@ -32,8 +37,8 @@ public class MyWindowManager {
 				layoutParams.format = PixelFormat.RGBA_8888;
 				layoutParams.flags = LayoutParams.FLAG_NOT_TOUCH_MODAL | LayoutParams.FLAG_NOT_FOCUSABLE;
 				layoutParams.gravity = Gravity.LEFT | Gravity.TOP;
-				layoutParams.width = 300;
-				layoutParams.height = 300;
+				layoutParams.width = 200;
+				layoutParams.height = 200;
 				layoutParams.x = screenWidth;
 				layoutParams.y = screenHeight / 2;
 			}
@@ -42,7 +47,12 @@ public class MyWindowManager {
 		}
 	}
 
-	public static void removeSmallWindow(Context context) {
+	/**
+	 * 移除悬浮View
+	 * 
+	 * @param context
+	 */
+	public static void removeFloatView(Context context) {
 		if (wrapFloatView != null) {
 			WindowManager windowManager = getWindowManager(context);
 			windowManager.removeView(wrapFloatView);
@@ -50,6 +60,11 @@ public class MyWindowManager {
 		}
 	}
 
+	/**
+	 * 悬浮View是否显示了
+	 * 
+	 * @return
+	 */
 	public static boolean isWindowShowing() {
 		return wrapFloatView != null;
 	}
