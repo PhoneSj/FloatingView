@@ -165,14 +165,15 @@ public class FloatView extends View {
 					}
 					invalidate();
 				}
-
 				break;
 			case MotionEvent.ACTION_UP:
-			case MotionEvent.ACTION_CANCEL:
 				isBeingDrag = false;
 				float dx = event.getX() - center.x;
 				float dy = event.getY() - center.y;
 				startDragAnim(judgeWhichDirection(dx, dy));
+				break;
+			case MotionEvent.ACTION_CANCEL:
+				isBeingDrag = false;
 				break;
 		}
 		return isConsume || event.getAction() == MotionEvent.ACTION_DOWN;
