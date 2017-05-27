@@ -106,7 +106,7 @@ public class WrapFloatView extends FrameLayout {
 		mScaleTouchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
 		windowManager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
 		LayoutInflater.from(context).inflate(R.layout.layout_float, this);
-		View view = findViewById(R.id.frameLayout);
+		View view = findViewById(R.id.floatView);
 		viewWidth = view.getLayoutParams().width;
 		viewHeight = view.getLayoutParams().height;
 	}

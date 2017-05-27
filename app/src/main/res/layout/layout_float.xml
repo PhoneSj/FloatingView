@@ -1,14 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<com.phone.custom.widget.FloatView
     xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/frameLayout"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content">
-
-    <com.phone.custom.widget.FloatView
-        android:id="@+id/floatView"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="center"/>
-
-</FrameLayout>
+    android:id="@+id/floatView"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_gravity="center"/>

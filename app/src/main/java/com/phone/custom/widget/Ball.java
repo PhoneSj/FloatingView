@@ -37,7 +37,6 @@ public abstract class Ball {
 	//静止时椭圆大小与控件大小的比值
 	protected float mSizeRate;
 	protected Paint mPaint;
-	private Paint textPaint;
 	private RadialGradient radialGradient;
 
 	public Ball(int centerX, int centerY, int parentRadius, float sizeRate) {
