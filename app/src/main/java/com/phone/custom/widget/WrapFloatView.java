@@ -158,7 +158,7 @@ public class WrapFloatView extends FrameLayout {
 				getMaxMoveDistance(event);
 				xInScreen = event.getRawX();
 				yInScreen = event.getRawY() - getStatusBarHeight();
-				// 手指移动的时候更新小悬浮窗的位置
+				// 手指移动的时候更新悬浮控件的位置
 				updateViewPosition();
 				break;
 			case MotionEvent.ACTION_UP:
@@ -172,7 +172,7 @@ public class WrapFloatView extends FrameLayout {
 	}
 
 	/**
-	 * 将小悬浮窗的参数传入，用于更新小悬浮窗的位置。
+	 * 将悬浮View的参数传入，用于更新小悬浮窗的位置。
 	 *
 	 * @param params 小悬浮窗的参数
 	 */
@@ -181,7 +181,7 @@ public class WrapFloatView extends FrameLayout {
 	}
 
 	/**
-	 * 更新小悬浮窗在屏幕中的位置。
+	 * 更新悬浮View在屏幕中的位置。
 	 */
 	private void updateViewPosition() {
 		Log.i("phoneTest", "xInView:" + xInView + ",	yInView:" + yInView);
